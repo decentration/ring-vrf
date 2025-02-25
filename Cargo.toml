@@ -1,0 +1,15 @@
+[package]
+name = "vrf-check"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ark-ec-vrfs = { git = "https://github.com/davxy/ark-ec-vrfs.git",  features = ["bandersnatch", "ring"], rev = "d90e180" }
+ark-serialize = "0.3" 
+hex = "0.4"
+libc = "0.2"
+
+
