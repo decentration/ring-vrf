@@ -22,20 +22,26 @@ pub extern "C" fn ring_vrf_ffi_aggregator(
 
     // Suppose keys_str is space-separated hex pubkeys
     let splitted: Vec<&str> = keys_cstr.split_whitespace().collect();
+    eprintln!("ENTER ring_vrf_ffi_aggregator");
 
     let aggregator =
         ring_vrf_produce_aggregator(&splitted, ring_size as usize, srs_cstr);
+    eprintln!("aggregator.len() = {}", aggregator.len());
 
     // allocate
     let len = aggregator.len();
     unsafe { *out_len = len as c_int };
     let buf_ptr = unsafe { libc::malloc(len) as *mut c_uchar };
     if buf_ptr.is_null() {
+        eprintln!("malloc returned null!");
+
         return ptr::null_mut();
     }
     unsafe {
         ptr::copy_nonoverlapping(aggregator.as_ptr(), buf_ptr, len);
     }
+    eprintln!("EXIT aggregator, returning ptr: {:p}", buf_ptr);
+
     buf_ptr
 }
 
@@ -137,6 +143,40 @@ pub extern "C" fn ring_vrf_ffi_verify(
     }
 }
 
+
+#[no_mangle]
+pub extern "C" fn ring_vrf_ffi_aggregator_test(
+    _keys_str: *const c_char,
+    _ring_size: c_int,
+    _srs_path: *const c_char,
+    out_len: *mut c_int
+) -> *mut c_uchar {
+    // Hard-code 4 bytes for a minimal test
+    let bytes = [0xde, 0xad, 0xbe, 0xef];
+    let len = bytes.len();
+
+    unsafe {
+        if !out_len.is_null() {
+            *out_len = len as c_int;
+        }
+    }
+
+    // Allocate 4 bytes with malloc
+    let ptr = unsafe { libc::malloc(len) } as *mut c_uchar;
+    if ptr.is_null() {
+        return ptr::null_mut();
+    }
+
+    // Copy the 4 bytes
+    unsafe {
+        ptr::copy_nonoverlapping(bytes.as_ptr(), ptr, len);
+    }
+
+    // Return pointer
+    ptr
+}
+
+
 /// Free pointer from ring_vrf_ffi_aggregator or ring_vrf_ffi_sign
 #[no_mangle]
 pub extern "C" fn ring_vrf_ffi_free(ptr: *mut c_uchar, _len: c_int) {
@@ -147,3 +187,4 @@ pub extern "C" fn ring_vrf_ffi_free(ptr: *mut c_uchar, _len: c_int) {
         libc::free(ptr as *mut libc::c_void);
     }
 }
+

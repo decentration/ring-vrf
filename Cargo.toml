@@ -1,6 +1,6 @@
 [package]
-name = "vrf-check"
-version = "0.1.0"
+name = "my-ring-vrf"
+version = "0.1.1"
 edition = "2021"
 
 [lib]
