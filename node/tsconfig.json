@@ -17,6 +17,6 @@
   },
   "include": [
     "src/**/*"
-  ],
-  "exclude": ["node_modules", "**/*.test.ts", "node_modules", "dist", "coverage",     "jest.config.js", "tsconfig.json"]
+, "../../src/ring-vrf-ffi/ring_vrf_ffi.ts"  ],
+  "exclude": ["node_modules", "**/*.test.ts", "node_modules", "dist", "coverage", "jest.config.js", "tsconfig.json"]
 }

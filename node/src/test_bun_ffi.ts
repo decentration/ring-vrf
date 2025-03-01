@@ -1,10 +1,8 @@
 import { dlopen, FFIType, suffix, CString, ptr, toArrayBuffer } from "bun:ffi";
 import { existsSync } from "fs";
 
-const libPath = `libmy_ring_vrf.so`;
-// const fileUrl = import.meta.resolve("./libmy_ring_vrf.so"); 
-// const path = new URL(fileUrl).pathname; 
-
+const libPath = "./ring-vrf/target/aarch64-apple-darwin/release/libmy_ring_vrf.dylib";
+const srsPathStr = "./ring-vrf/data/zcash-srs-2-11-uncompressed.bin";
 
 console.log("Loading library from:", libPath, existsSync(libPath) ? "(found)" : "(missing)");
 
@@ -41,14 +39,13 @@ try {
   ].join(" ");
   const ringSize = 6;
   // The SRS in Docker at /app/data
-  const srsPathStr = "/app/data/zcash-srs-2-11-uncompressed.bin";
 
   // store out_len in a small Int32Array
   const outLenBuf = new Int32Array(1);
 
   // convert ringKeys to a buffer
-  const ringKeysBuf = Buffer.from(ringKeysStr, "utf-8");
-  const srsPathBuf  = Buffer.from(srsPathStr + "\0", "utf8");
+  const ringKeysBuf = new Uint8Array(Buffer.from(ringKeysStr, "utf-8"));
+  const srsPathBuf  = new Uint8Array(Buffer.from(srsPathStr + "\0", "utf8"));
 
   // 1) Call aggregator
   const ptrOut = symbols.ring_vrf_ffi_aggregator(

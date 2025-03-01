@@ -24,8 +24,12 @@ For the node.js part of the ffi we use bun and bun:ffi. So we need to install th
 
 
 ```bash
-bun install
+curl -fsSL https://bun.sh/install | bash
+BUN_INSTALL=/root/.bun
+PATH=$BUN_INSTALL/bin:$PATH
 bun upgrade
+bun install
+
 ```
 
 
@@ -36,6 +40,15 @@ bun upgrade
    cargo build --release
    ```
 This produces target/release/libmy_ring_vrf.so (Linux) or .dylib (macOS).
+
+## Macbook M1/M2
+
+```
+cargo build --release --target aarch64-apple-darwin
+```
+
+```
+then in the 
 
 
 ## To Use
@@ -85,17 +98,6 @@ clang test_ffi.c -o test_ffi \
 ```
 
 or to just test the aggregator
-
-
-## Issues
-
-There were a heap of hurdles trying to create this ffi, with manifold pointer issue segmentation faults that were hard to decipher. So I had to try various different ffi libraries to get the node.js side working, but we settled on bun:ffi. 
-
-- **bun:ffi** There were issues running bun:ffi on the macbook, likely to do with arm64, so without digging into a fix, I used docker. 
-
-- within the docker there were issues with GLIBC_2.34 on Debian. So I used Debian bookwork_slim, which is newer. 
-
--  ...
 
 ## TODO
 
