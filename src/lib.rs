@@ -24,8 +24,24 @@ pub extern "C" fn ring_vrf_ffi_aggregator(
     let splitted: Vec<&str> = keys_cstr.split_whitespace().collect();
     eprintln!("ENTER ring_vrf_ffi_aggregator");
 
-    let aggregator =
-        ring_vrf_produce_aggregator(&splitted, ring_size as usize, srs_cstr);
+     // Convert to owned Strings so we can pad if needed
+     let mut all_keys: Vec<String> = splitted.iter().map(|s| s.to_string()).collect();
+
+     // Pad so we end up with ring_size, and then we will convert to the bandersnatch padding point in parse_public
+     let needed = ring_size as usize;
+     if all_keys.len() < needed {
+         eprintln!("  We have only {} keys, but ring_size={} => padding with zero hex", all_keys.len(), needed);
+         while all_keys.len() < needed {
+             all_keys.push("0000000000000000000000000000000000000000000000000000000000000000".to_string());
+         }
+         eprintln!("  We have only {} keys, but ring_size={} => padding with zero hex", all_keys.len(), needed);
+
+     } else if all_keys.len() > needed {
+         eprintln!("  We have {} keys but ring_size={} => truncating extras", all_keys.len(), needed);
+         all_keys.truncate(needed);
+     }
+    eprintln!("  all_keys.len() = {}", all_keys.len());
+    let aggregator = ring_vrf_produce_aggregator(&splitted, ring_size as usize, srs_cstr);
     eprintln!("aggregator.len() = {}", aggregator.len());
 
     // allocate
@@ -34,7 +50,6 @@ pub extern "C" fn ring_vrf_ffi_aggregator(
     let buf_ptr = unsafe { libc::malloc(len) as *mut c_uchar };
     if buf_ptr.is_null() {
         eprintln!("malloc returned null!");
-
         return ptr::null_mut();
     }
     unsafe {

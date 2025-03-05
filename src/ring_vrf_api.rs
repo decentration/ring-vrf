@@ -10,8 +10,13 @@ use bandersnatch::{ AffinePoint, Input, Output, Public, RingProof, Secret, PcsPa
 use hex;
 
 static RING_CTX: OnceLock<RingContext> = OnceLock::new();
-
-/// Initialize the RingContext if not already done
+static PADDING_COMPRESSED: [u8; 32] = [
+    0xf5, 0x39, 0x9e, 0x03, 0xf2, 0x12, 0x1f, 0xf4,
+    0xc5, 0xd3, 0x33, 0x86, 0xcd, 0xc6, 0x6d, 0x56,
+    0xa6, 0xc5, 0x13, 0x2b, 0x73, 0x9f, 0x75, 0x34,
+    0x42, 0xf7, 0xbd, 0xa6, 0xc7, 0x69, 0x8c, 0x03,
+];
+/// Initialize the RingContext
 fn init_ring_ctx(srs_path: &str, ring_size: usize) -> &'static RingContext {
     RING_CTX.get_or_init(|| {
         let mut file = File::open(srs_path).expect("Failed to open SRS file");
@@ -43,7 +48,7 @@ pub fn ring_vrf_produce_aggregator(
 
     // aggregator
     let vkey = ring_ctx.verifier_key(&ark_points);
-    let commitment = vkey.commitment(); // might be 144 bytes
+    let commitment = vkey.commitment(); // is 144 bytes
 
     // serialize
     let mut out = Vec::new();
@@ -140,14 +145,38 @@ struct RingVrfSignature {
 
 // parse 32-byte bandersnatch public from hex, compressed
 fn parse_public(hex_str: &str) -> Public {
-    let raw = hex::decode(hex_str).unwrap();
+    println!("hex_str: {}", hex_str);
+    let raw = hex::decode(hex_str).expect("hex decode failed");
+
+    if raw.iter().all(|&b| b == 0) {
+        eprintln!("parse_public: Found all-zero offender key => converting to identity");
+        return padding_public();
+    }
+
     let mut cursor = &raw[..];
-    let affine =
-        AffinePoint::deserialize_compressed(&mut cursor).expect("Failed to decompress pubkey");
-    Public::from(affine)
+    match AffinePoint::deserialize_compressed(&mut cursor) {
+        Ok(affine) => {
+            eprintln!("Ok, parsed as: {:?}", affine);
+            Public::from(affine)
+        }
+        Err(_) => {
+            eprintln!("Invalid compressed => using the official padding point");
+            padding_public()
+        }
+    }
 }
 
-// parse 32-byte secret from hex => we do `Secret::from_seed` if that’s the pattern
+fn padding_public() -> Public {
+    // Decompress the constant PADDING_COMPRESSED
+    let mut cursor = &PADDING_COMPRESSED[..];
+    let aff = AffinePoint::deserialize_compressed(&mut cursor)
+        .expect("PADDING_COMPRESSED is not a valid compressed point?!");
+
+    Public::from(aff)
+}
+
+
+// parse 32-byte secret from hex => we do `Secret::from_seed` if that’s the pattern, TODO but this will change in production
 fn parse_secret(hex_str: &str) -> Secret {
 
     let raw = hex::decode(hex_str).unwrap();
